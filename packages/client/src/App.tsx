@@ -6,7 +6,11 @@ function App() {
    const [message, setMessage] = useState('');
 
    useEffect(() => {
-      fetch('/api/hello')
+      // fetch('/api/hello')
+      //    .then((res) => res.json())
+      //    .then((data) => setMessage(data.message));
+
+      fetch('/api/chat')
          .then((res) => res.json())
          .then((data) => setMessage(data.message));
    }, []);
