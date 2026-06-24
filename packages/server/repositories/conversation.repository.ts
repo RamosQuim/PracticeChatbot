@@ -2,7 +2,7 @@
 const conversations: Record<string, any[]> = {};
 
 // export public interface
-export const converationRepository = {
+export const conversationRepository = {
    getConversationId(conversationId: string) {
       return conversations[conversationId];
    },

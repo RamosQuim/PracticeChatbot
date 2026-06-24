@@ -1,5 +1,5 @@
 import { CohereClientV2 } from 'cohere-ai';
-import { converationRepository } from '../repositories/conversation.repository';
+import { conversationRepository } from '../repositories/conversation.repository';
 
 // Implementation detail
 const client = new CohereClientV2({
@@ -17,12 +17,12 @@ export const chatService = {
       prompt: string,
       conversationId: string
    ): Promise<ChatResponse> {
-      if (!converationRepository.getConversationId(conversationId)) {
-         converationRepository.setConversationId(conversationId, []);
+      if (!conversationRepository.getConversationId(conversationId)) {
+         conversationRepository.setConversationId(conversationId, []);
       }
 
       const conversation =
-         converationRepository.getConversationId(conversationId) || [];
+         conversationRepository.getConversationId(conversationId) || [];
 
       // add user message
       conversation?.push({
