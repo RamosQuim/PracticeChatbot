@@ -2,6 +2,8 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import dotenv from 'dotenv';
 const { CohereClientV2 } = require('cohere-ai');
+import z from 'zod';
+import { converationRepository } from './repositories/conversation.repository';
 
 dotenv.config();
 
@@ -21,20 +23,35 @@ app.get('/api/hello', (req: Request, res: Response) => {
    res.json({ message: 'Hello, world!' });
 });
 
-const conversations: Record<string, any[]> = {};
+const chatSchema = z.object({
+   prompt: z
+      .string()
+      .trim()
+      .min(1, 'Prompt is required.')
+      .max(1000, 'Prompt is too long (max: 1000 characters)'),
+   conversationId: z.uuid(),
+});
 
 app.post('/api/chat', async (req: Request, res: Response) => {
    try {
-      const { prompt, conversationId } = req.body;
+      const parseResult = chatSchema.safeParse(req.body);
 
-      if (!conversations[conversationId]) {
-         conversations[conversationId] = [];
+      if (!parseResult.success) {
+         res.status(400).json(z.treeifyError(parseResult.error));
+         return;
       }
 
-      const conversation = conversations[conversationId];
+      const { prompt, conversationId } = req.body;
+
+      if (!converationRepository.getConversationId(conversationId)) {
+         converationRepository.setConversationId(conversationId, []);
+      }
+
+      const conversation =
+         converationRepository.getConversationId(conversationId);
 
       // add user message
-      conversation.push({
+      conversation?.push({
          role: 'user',
          content: prompt,
       });
@@ -45,7 +62,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       });
 
       // add assistant reply
-      conversation.push({
+      conversation?.push({
          role: 'assistant',
          content: response.message.content[0].text,
       });
