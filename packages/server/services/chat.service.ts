@@ -1,12 +1,7 @@
-import { CohereClientV2 } from 'cohere-ai';
 import { conversationRepository } from '../repositories/conversation.repository';
 import fs from 'fs';
 import path from 'path';
-
-// Implementation detail
-const client = new CohereClientV2({
-   token: process.env.LLM_API_KEY,
-});
+import { llmClient } from '../llm/client';
 
 const template = fs.readFileSync(
    path.join(__dirname, '..', 'prompts', 'chatbot.txt'),
@@ -47,27 +42,18 @@ export const chatService = {
          content: prompt,
       });
 
-      const response = await client.chat({
-         model: 'command-a-03-2025',
-         messages: conversation,
-      });
-
       // correctly parse the response object
-      const reply =
-         response.message?.content
-            ?.filter((item) => item.type === 'text')
-            ?.map((item) => item.text)
-            ?.join('') || '';
+      const reply = await llmClient.generateText({ message: conversation });
 
       // add assistant reply
       conversation?.push({
          role: 'assistant',
-         content: reply,
+         content: reply.text,
       });
 
       return {
-         id: response.id,
-         message: reply,
+         id: reply.id,
+         message: reply.text,
       };
    },
 };

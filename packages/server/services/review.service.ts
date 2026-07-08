@@ -1,6 +1,7 @@
 import { CohereClientV2 } from 'cohere-ai';
 import type { Review } from '../generated/prisma/browser';
 import { reviewRepository } from '../repositories/review.repository';
+import { llmClient } from '../llm/client';
 
 // Implementation detail
 const client = new CohereClientV2({
@@ -28,20 +29,6 @@ export const reviewService = {
          },
       ];
 
-      const response = await client.chat({
-         model: 'command-a-03-2025',
-         temperature: 0.2,
-         maxTokens: 500,
-         messages: prompt,
-      });
-
-      // correctly parse the response object
-      const reply =
-         response.message?.content
-            ?.filter((item) => item.type === 'text')
-            ?.map((item) => item.text)
-            ?.join('') || '';
-
-      return reply;
+      return (await llmClient.generateText({ message: prompt })).text;
    },
 };
