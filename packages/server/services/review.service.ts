@@ -1,7 +1,13 @@
 import { CohereClientV2 } from 'cohere-ai';
-import type { Review } from '../generated/prisma/browser';
 import { reviewRepository } from '../repositories/review.repository';
 import { llmClient } from '../llm/client';
+import fs from 'fs';
+import path from 'path';
+
+const template = fs.readFileSync(
+   path.join(__dirname, '..', 'prompts', 'summarize-reviews.txt'),
+   'utf-8'
+);
 
 // Implementation detail
 const client = new CohereClientV2({
@@ -9,26 +15,30 @@ const client = new CohereClientV2({
 });
 
 export const reviewService = {
-   async getReviews(productId: number): Promise<Review[]> {
-      return reviewRepository.getReviews(productId);
-   },
+   async summarizeReviews(productId: number): Promise<string> {
+      const existingSummary =
+         await reviewRepository.getReviewSummary(productId);
+      if (existingSummary) {
+         return existingSummary;
+      }
 
-   async summarizeReviews(product: number): Promise<string> {
       // get last 10 reviews
       // send reviews to an LLM
-      const reviews = await reviewRepository.getReviews(product, 10);
+      const reviews = await reviewRepository.getReviews(productId, 10);
       const joinedReviews = reviews.map((r) => r.content).join('\n\n');
+
       const prompt = [
          {
             role: 'user',
-            content: `
-        Summarize the following customer reviews into a short paragraph
-        highlighting key themes, both positive and negative:
-
-        ${joinedReviews}`,
+            content: template.replace('{{reviews}}', joinedReviews),
          },
       ];
 
-      return (await llmClient.generateText({ message: prompt })).text;
+      const { text: summary } = await llmClient.generateText({
+         message: prompt,
+      });
+      await reviewRepository.storeReviewSummary(productId, summary);
+
+      return summary;
    },
 };
