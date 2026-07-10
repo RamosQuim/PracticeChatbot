@@ -7,55 +7,27 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '../ui/button';
 import ReactMarkdown from 'react-markdown';
 import ReviewSkeleton from './ReviewSkeleton';
+import {
+   reviewsApi,
+   type GetReviewsResponse,
+   type SummarizeResponse,
+} from './ReviewsApi';
 
 type Props = {
    productId: number;
 };
 
-type SummarizeResponse = {
-   summary: string;
-};
-
-type Review = {
-   id: number;
-   author: string;
-   content: string;
-   rating: number;
-   createdAt: string;
-};
-
-type GetReviewsResponse = {
-   summary: string | null;
-   reviews: Review[];
-};
-
 const ReviewList = ({ productId }: Props) => {
    const summaryMutation = useMutation<SummarizeResponse>({
-      mutationFn: () => summarizeReviews(),
+      mutationFn: () => reviewsApi.summarizeReviews(productId),
    });
    const reviewsQuery = useQuery<GetReviewsResponse>({
       queryKey: ['reviews', productId],
-      queryFn: () => fetchReviews(),
+      queryFn: () => reviewsApi.fetchReviews(productId),
    });
 
-   const summarizeReviews = async () => {
-      const { data } = await axios.post<SummarizeResponse>(
-         `/api/products/${productId}/reviews/summarize`
-      );
-
-      return data;
-   };
-
-   const fetchReviews = async () => {
-      const { data } = await axios.get<GetReviewsResponse>(
-         `/api/products/${productId}/reviews`
-      );
-
-      return data;
-   };
-
    useEffect(() => {
-      fetchReviews();
+      reviewsApi.fetchReviews(productId);
    }, []);
 
    if (reviewsQuery.isLoading) {
@@ -89,7 +61,7 @@ const ReviewList = ({ productId }: Props) => {
             ) : (
                <div>
                   <Button
-                     onClick={() => summaryMutation.mutate}
+                     onClick={() => summaryMutation.mutate()}
                      disabled={summaryMutation.isPending}
                      className="cursor-pointer"
                   >
@@ -101,7 +73,7 @@ const ReviewList = ({ productId }: Props) => {
                         <ReviewSkeleton />
                      </div>
                   )}
-                  {summaryMutation.isPending && (
+                  {summaryMutation.isError && (
                      <p className="text-red-500">
                         Could not summarize reviews. Try again.
                      </p>
