@@ -1,7 +1,4 @@
 
 Summarize the following customer reviews into a short paragraph
-highlighting key themes, both positive and negative:
-
-{{reviews}}
-
+highlighting key themes, both positive and negative.
 If there is no given review then do not summarize.

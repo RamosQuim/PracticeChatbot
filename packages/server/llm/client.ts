@@ -1,10 +1,19 @@
 import { CohereClientV2 } from 'cohere-ai';
 import type { ChatMessage } from 'cohere-ai/api';
+import { InferenceClient } from '@huggingface/inference';
+import { readFileSync } from 'fs';
+
+const summarizePrompt = readFileSync(
+   new URL('../llm/prompts/summarize-reviews.txt', import.meta.url),
+   'utf-8'
+);
 
 // Implementation detail
-const client = new CohereClientV2({
+const cohereClient = new CohereClientV2({
    token: process.env.LLM_API_KEY,
 });
+
+const inferenceClient = new InferenceClient(process.env.HF_TOKEN);
 
 type GenerateTextOptions = {
    model?: string;
@@ -25,7 +34,7 @@ export const llmClient = {
       temperature = 0.2,
       maxTokens = 500,
    }: GenerateTextOptions): Promise<GenerateTextResult> {
-      const response = await client.chat({
+      const response = await cohereClient.chat({
          model,
          messages: message,
          temperature,
@@ -43,5 +52,23 @@ export const llmClient = {
          id: response.id,
          text: reply,
       };
+   },
+
+   async summarizeReviews(reviews: string) {
+      const chatCompletion = await inferenceClient.chatCompletion({
+         model: 'meta-llama/Llama-3.1-8B-Instruct:novita',
+         messages: [
+            {
+               role: 'system',
+               content: summarizePrompt,
+            },
+            {
+               role: 'user',
+               content: reviews,
+            },
+         ],
+      });
+
+      return chatCompletion.choices[0]?.message.content || '';
    },
 };
